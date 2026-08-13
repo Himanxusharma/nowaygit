@@ -32,8 +32,31 @@ async function handleMessage(message: ExtensionMessage): Promise<any> {
     }
 
     case 'POLL_AUTH': {
-      // Background helper call or UI polling trigger
-      return { status: 'polling' };
+      const token = await storageService.getAccessToken();
+      if (token) {
+        let user = await storageService.getAuthUser();
+        if (!user) {
+          user = await githubService.fetchUser(token);
+          await storageService.setAuthUser(user);
+        }
+        return { authenticated: true, user };
+      }
+
+      if (!message.deviceCode) {
+        return { authenticated: false, user: null };
+      }
+
+      const settings = await storageService.getSettings();
+      const pollRes = await githubService.pollAccessToken(settings.githubClientId, message.deviceCode);
+
+      if (pollRes.access_token) {
+        await storageService.setAccessToken(pollRes.access_token);
+        const user = await githubService.fetchUser(pollRes.access_token);
+        await storageService.setAuthUser(user);
+        return { authenticated: true, user };
+      }
+
+      return { authenticated: false, user: null };
     }
 
     case 'CHECK_AUTH_STATUS': {
@@ -167,6 +190,59 @@ async function handleMessage(message: ExtensionMessage): Promise<any> {
       if (message.provider === 'gitlab') return await gitlabService.getFileTree(message.owner + '/' + message.repo, message.ref);
       if (message.provider === 'bitbucket') return await bitbucketService.getFileTree(message.owner, message.repo, message.ref);
       throw new Error(`Unsupported provider: ${message.provider}`);
+    }
+
+    case 'WEB_AUTH_FLOW': {
+      const settings = await storageService.getSettings();
+      if (!settings.githubClientId) {
+        throw new Error('GitHub Client ID is missing in settings.');
+      }
+      if (!settings.githubClientSecret) {
+        throw new Error('GitHub Client Secret is missing in settings. Please configure it under settings first.');
+      }
+
+      const redirectUri = chrome.identity.getRedirectURL();
+      const authUrl = `https://github.com/login/oauth/authorize?client_id=${settings.githubClientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=repo%20user`;
+
+      return new Promise((resolvePromise, rejectPromise) => {
+        chrome.identity.launchWebAuthFlow(
+          {
+            url: authUrl,
+            interactive: true
+          },
+          async (redirectUrl) => {
+            if (chrome.runtime.lastError) {
+              return rejectPromise(new Error(chrome.runtime.lastError.message));
+            }
+            if (!redirectUrl) {
+              return rejectPromise(new Error('Web Auth Flow failed: No redirect URL returned.'));
+            }
+
+            const urlObj = new URL(redirectUrl);
+            const code = urlObj.searchParams.get('code');
+            if (!code) {
+              return rejectPromise(new Error('Authorization code not found in redirect URL.'));
+            }
+
+            try {
+              const accessToken = await githubService.exchangeCodeForToken(
+                settings.githubClientId,
+                settings.githubClientSecret!,
+                code,
+                redirectUri
+              );
+
+              await storageService.setAccessToken(accessToken);
+              const user = await githubService.fetchUser(accessToken);
+              await storageService.setAuthUser(user);
+
+              resolvePromise({ authenticated: true, user });
+            } catch (err: any) {
+              rejectPromise(err);
+            }
+          }
+        );
+      });
     }
 
     default:

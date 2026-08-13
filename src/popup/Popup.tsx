@@ -36,6 +36,7 @@ export const Popup: React.FC = () => {
   // Editable settings inputs
   const [apiKeyInput, setApiKeyInput] = useState<string>('');
   const [clientIdInput, setClientIdInput] = useState<string>('');
+  const [clientSecretInput, setClientSecretInput] = useState<string>('');
   const [pushModeInput, setPushModeInput] = useState<'branch_pr' | 'direct'>('branch_pr');
   const [activeTab, setActiveTab] = useState<'main' | 'settings' | 'diagnostics'>('main');
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
@@ -84,6 +85,7 @@ export const Popup: React.FC = () => {
         setSettings(s);
         setApiKeyInput(s.anthropicApiKey || '');
         setClientIdInput(s.githubClientId || 'Ov23liZ2Ym642n4jZ9aO');
+        setClientSecretInput(s.githubClientSecret || '');
         setPushModeInput(s.defaultPushMode || 'branch_pr');
         setGitlabTokenInput(s.gitlabToken || '');
         setGitlabHostInput(s.gitlabHost || 'https://gitlab.com');
@@ -134,14 +136,17 @@ export const Popup: React.FC = () => {
       const res = await chrome.runtime.sendMessage({ type: 'INITIATE_AUTH' });
       if (res?.success && res.data) {
         setDeviceCode(res.data);
-        pollAuth();
+        pollAuth(res.data);
       }
     } catch {}
   };
 
-  const pollAuth = () => {
+  const pollAuth = (deviceCodeData: any) => {
     const timer = setInterval(async () => {
-      const check = await chrome.runtime.sendMessage({ type: 'CHECK_AUTH_STATUS' });
+      const check = await chrome.runtime.sendMessage({
+        type: 'POLL_AUTH',
+        deviceCode: deviceCodeData.device_code
+      });
       if (check?.success && check.data?.authenticated) {
         clearInterval(timer);
         setDeviceCode(null);
@@ -162,6 +167,7 @@ export const Popup: React.FC = () => {
         settings: {
           anthropicApiKey: apiKeyInput.trim(),
           githubClientId: clientIdInput.trim() || 'Ov23liZ2Ym642n4jZ9aO',
+          githubClientSecret: clientSecretInput.trim(),
           defaultPushMode: pushModeInput,
           gitlabToken: gitlabTokenInput.trim(),
           gitlabHost: gitlabHostInput.trim() || 'https://gitlab.com',

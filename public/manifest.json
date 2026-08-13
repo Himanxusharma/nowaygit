@@ -5,7 +5,8 @@
   "version": "1.0.0",
   "description": "Push claude.ai code artifacts directly to GitHub repositories without leaving your chat.",
   "permissions": [
-    "storage"
+    "storage",
+    "identity"
   ],
   "host_permissions": [
     "https://claude.ai/*",

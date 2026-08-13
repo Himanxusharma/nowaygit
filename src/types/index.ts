@@ -108,6 +108,7 @@ export interface WatchConfig {
 
 export interface ExtensionSettings {
   githubClientId: string;
+  githubClientSecret?: string;
   anthropicApiKey?: string;
   defaultPushMode: 'branch_pr' | 'direct';
   lastUsedRepo?: {
@@ -170,7 +171,8 @@ export type MessageType =
   | 'PUSH_ARTIFACT_BY_PROVIDER'
   | 'PUSH_MULTI_ARTIFACTS_BY_PROVIDER'
   | 'GET_FILE_CONTENTS_BY_PROVIDER'
-  | 'GET_FILE_TREE';
+  | 'GET_FILE_TREE'
+  | 'WEB_AUTH_FLOW';
 
 export interface BaseMessage {
   type: MessageType;
@@ -182,6 +184,7 @@ export interface InitiateAuthMessage extends BaseMessage {
 
 export interface PollAuthMessage extends BaseMessage {
   type: 'POLL_AUTH';
+  deviceCode?: string;
 }
 
 export interface CheckAuthStatusMessage extends BaseMessage {
@@ -333,4 +336,9 @@ export type ExtensionMessage =
   | PushArtifactByProviderMessage
   | PushMultiArtifactsByProviderMessage
   | GetFileContentsByProviderMessage
-  | GetFileTreeMessage;
+  | GetFileTreeMessage
+  | WebAuthFlowMessage;
+
+export interface WebAuthFlowMessage extends BaseMessage {
+  type: 'WEB_AUTH_FLOW';
+}
