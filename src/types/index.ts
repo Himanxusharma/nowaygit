@@ -59,6 +59,31 @@ export interface PushResult {
   error?: string;
 }
 
+export interface MultiPushOptions {
+  owner: string;
+  repo: string;
+  isNewRepo: boolean;
+  isPrivateRepo?: boolean;
+  repoDescription?: string;
+  commitMessage: string;
+  pushMode: 'branch_pr' | 'direct';
+  targetBranch?: string;
+  prTitle?: string;
+  prBody?: string;
+  files: Array<{
+    filePath: string;
+    content: string;
+  }>;
+  generateReadme?: boolean;
+}
+
+export interface DiffLine {
+  type: 'same' | 'add' | 'delete';
+  oldLineNumber?: number;
+  newLineNumber?: number;
+  text: string;
+}
+
 export interface ExtensionSettings {
   githubClientId: string;
   anthropicApiKey?: string;
@@ -68,6 +93,7 @@ export interface ExtensionSettings {
     repo: string;
     filePath: string;
   };
+  conversationRepos?: Record<string, { owner: string; repo: string; folderPath: string }>;
 }
 
 export interface GitHubUser {
@@ -87,9 +113,13 @@ export type MessageType =
   | 'CREATE_REPO'
   | 'GET_FILE_CONTENTS'
   | 'PUSH_ARTIFACT'
+  | 'PUSH_MULTI_ARTIFACTS'
   | 'GENERATE_COMMIT_MESSAGE'
+  | 'GENERATE_README'
   | 'GET_SETTINGS'
-  | 'SAVE_SETTINGS';
+  | 'SAVE_SETTINGS'
+  | 'GET_CONVERSATION_SETTINGS'
+  | 'SAVE_CONVERSATION_SETTINGS';
 
 export interface BaseMessage {
   type: MessageType;
@@ -97,6 +127,10 @@ export interface BaseMessage {
 
 export interface InitiateAuthMessage extends BaseMessage {
   type: 'INITIATE_AUTH';
+}
+
+export interface PollAuthMessage extends BaseMessage {
+  type: 'POLL_AUTH';
 }
 
 export interface CheckAuthStatusMessage extends BaseMessage {
@@ -131,11 +165,22 @@ export interface PushArtifactMessage extends BaseMessage {
   options: PushOptions;
 }
 
+export interface PushMultiArtifactsMessage extends BaseMessage {
+  type: 'PUSH_MULTI_ARTIFACTS';
+  options: MultiPushOptions;
+}
+
 export interface GenerateCommitMessageMessage extends BaseMessage {
   type: 'GENERATE_COMMIT_MESSAGE';
   filename: string;
   content: string;
   diff?: string;
+}
+
+export interface GenerateReadmeMessage extends BaseMessage {
+  type: 'GENERATE_README';
+  projectName: string;
+  files: Array<{ filename: string; content: string }>;
 }
 
 export interface GetSettingsMessage extends BaseMessage {
@@ -147,8 +192,15 @@ export interface SaveSettingsMessage extends BaseMessage {
   settings: Partial<ExtensionSettings>;
 }
 
-export interface PollAuthMessage extends BaseMessage {
-  type: 'POLL_AUTH';
+export interface GetConversationSettingsMessage extends BaseMessage {
+  type: 'GET_CONVERSATION_SETTINGS';
+  conversationId: string;
+}
+
+export interface SaveConversationSettingsMessage extends BaseMessage {
+  type: 'SAVE_CONVERSATION_SETTINGS';
+  conversationId: string;
+  repo: { owner: string; repo: string; folderPath: string };
 }
 
 export type ExtensionMessage =
@@ -160,6 +212,10 @@ export type ExtensionMessage =
   | CreateRepoMessage
   | GetFileContentsMessage
   | PushArtifactMessage
+  | PushMultiArtifactsMessage
   | GenerateCommitMessageMessage
+  | GenerateReadmeMessage
   | GetSettingsMessage
-  | SaveSettingsMessage;
+  | SaveSettingsMessage
+  | GetConversationSettingsMessage
+  | SaveConversationSettingsMessage;

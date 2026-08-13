@@ -121,5 +121,64 @@ export const artifactExtractor = {
       content,
       inferredFilename
     };
+  },
+
+  /**
+   * Extract conversation ID from URL
+   */
+  getConversationId(): string | null {
+    const match = window.location.pathname.match(/\/chat\/([a-zA-Z0-9-]+)/);
+    return match ? match[1] : null;
+  },
+
+  /**
+   * Extract all artifacts present in the active conversation
+   */
+  extractAllArtifacts(): ArtifactData[] {
+    const artifacts: ArtifactData[] = [];
+    const elements = document.querySelectorAll(
+      '[data-testid="artifact-content"], .artifact-content, div[class*="artifact-"], aside[class*="artifact"], .code-block, pre'
+    );
+
+    const seenContents = new Set<string>();
+
+    elements.forEach((el, index) => {
+      const codeEl = el.querySelector('code') || el.querySelector('pre') || el;
+      const content = codeEl.textContent || '';
+
+      if (content.trim() && !seenContents.has(content.trim())) {
+        seenContents.add(content.trim());
+
+        const titleEl =
+          el.querySelector('header span, h1, h2') ||
+          document.querySelector('[data-testid="artifact-header"] span');
+        const title = titleEl?.textContent?.trim() || `artifact_${index + 1}`;
+
+        let language = 'text';
+        const langEl = el.querySelector('[data-language]') || el.querySelector('code[class*="language-"]');
+        if (langEl) {
+          const attr = langEl.getAttribute('data-language');
+          if (attr) {
+            language = attr;
+          } else {
+            const match = langEl.className.match(/language-([a-z0-9_-]+)/i);
+            if (match) language = match[1];
+          }
+        }
+
+        const extension = this.inferExtension(language);
+        const inferredFilename = this.sanitizeFilename(title, extension);
+
+        artifacts.push({
+          title,
+          type: language,
+          language,
+          content,
+          inferredFilename
+        });
+      }
+    });
+
+    return artifacts;
   }
 };

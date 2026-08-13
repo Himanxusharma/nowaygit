@@ -13,7 +13,8 @@ import {
   RefreshCw,
   Lock,
   Globe,
-  FileCode
+  FileCode,
+  Eye
 } from 'lucide-react';
 import {
   ArtifactData,
@@ -23,13 +24,23 @@ import {
   PushResult,
   ExtensionSettings
 } from '../types';
+import { DiffViewer } from './diffViewer';
+import { artifactExtractor } from './extractor';
 
 interface PushModalProps {
-  artifact: ArtifactData;
+  artifact?: ArtifactData;
+  allArtifacts?: ArtifactData[];
+  conversationId?: string | null;
   onClose: () => void;
 }
 
-const PushModal: React.FC<PushModalProps> = ({ artifact, onClose }) => {
+export const PushModal: React.FC<PushModalProps> = ({
+  artifact,
+  allArtifacts,
+  conversationId,
+  onClose
+}) => {
+  const isMultiMode = !!allArtifacts && allArtifacts.length > 0;
   const [auth, setAuth] = useState<{ authenticated: boolean; user: GitHubUser | null }>({
     authenticated: false,
     user: null
@@ -44,14 +55,18 @@ const PushModal: React.FC<PushModalProps> = ({ artifact, onClose }) => {
   const [newRepoName, setNewRepoName] = useState<string>('');
   const [newRepoDesc, setNewRepoDesc] = useState<string>('');
   const [isPrivate, setIsPrivate] = useState<boolean>(false);
-  const [filePath, setFilePath] = useState<string>(artifact.inferredFilename);
+  const [filePath, setFilePath] = useState<string>(
+    artifact?.inferredFilename || 'src/app.tsx'
+  );
   const [pushMode, setPushMode] = useState<'branch_pr' | 'direct'>('branch_pr');
   const [commitMessage, setCommitMessage] = useState<string>('');
   const [generatingAi, setGeneratingAi] = useState<boolean>(false);
+  const [generateReadme, setGenerateReadme] = useState<boolean>(true);
 
   // Existing file & diff check state
   const [existingFile, setExistingFile] = useState<{ sha: string; content: string; size: number } | null>(null);
   const [checkingExisting, setCheckingExisting] = useState<boolean>(false);
+  const [showDiff, setShowDiff] = useState<boolean>(false);
 
   // Operation state
   const [pushing, setPushing] = useState<boolean>(false);
@@ -112,11 +127,22 @@ const PushModal: React.FC<PushModalProps> = ({ artifact, onClose }) => {
 
   const loadSettings = async () => {
     try {
+      // Check per-conversation repo memory first
+      if (conversationId) {
+        const convRes = await chrome.runtime.sendMessage({
+          type: 'GET_CONVERSATION_SETTINGS',
+          conversationId
+        });
+        if (convRes?.success && convRes.data) {
+          setSelectedRepo(`${convRes.data.owner}/${convRes.data.repo}`);
+        }
+      }
+
       const res = await chrome.runtime.sendMessage({ type: 'GET_SETTINGS' });
       if (res?.success && res.data) {
         const settings: ExtensionSettings = res.data;
         setPushMode(settings.defaultPushMode || 'branch_pr');
-        if (settings.lastUsedRepo && !createNewRepo) {
+        if (settings.lastUsedRepo && !createNewRepo && !selectedRepo) {
           setSelectedRepo(`${settings.lastUsedRepo.owner}/${settings.lastUsedRepo.repo}`);
         }
       }
@@ -147,7 +173,6 @@ const PushModal: React.FC<PushModalProps> = ({ artifact, onClose }) => {
       const res = await chrome.runtime.sendMessage({ type: 'INITIATE_AUTH' });
       if (res?.success && res.data) {
         setDeviceCode(res.data);
-        // Start polling check
         pollForAuthToken(res.data.device_code, res.data.interval || 5);
       } else {
         setError(res?.error || 'Failed to initiate GitHub Device Flow.');
@@ -165,7 +190,6 @@ const PushModal: React.FC<PushModalProps> = ({ artifact, onClose }) => {
           clearInterval(timer);
           setDeviceCode(null);
           setAuth({ authenticated: true, user: check.data.user });
-          fetchRepos();
         }
       } catch {}
     }, Math.max(intervalSec, 5) * 1000);
@@ -174,18 +198,22 @@ const PushModal: React.FC<PushModalProps> = ({ artifact, onClose }) => {
   const generateAiCommitMessage = async () => {
     setGeneratingAi(true);
     try {
-      const res = await chrome.runtime.sendMessage({
-        type: 'GENERATE_COMMIT_MESSAGE',
-        filename: filePath,
-        content: artifact.content
-      });
-      if (res?.success && res.data) {
-        setCommitMessage(res.data);
+      if (isMultiMode && allArtifacts) {
+        setCommitMessage(`Add/update ${allArtifacts.length} artifacts via nowaygit`);
       } else {
-        setCommitMessage(`Add ${filePath} via nowaygit`);
+        const res = await chrome.runtime.sendMessage({
+          type: 'GENERATE_COMMIT_MESSAGE',
+          filename: filePath,
+          content: artifact?.content || ''
+        });
+        if (res?.success && res.data) {
+          setCommitMessage(res.data);
+        } else {
+          setCommitMessage(`Add ${filePath} via nowaygit`);
+        }
       }
     } catch {
-      setCommitMessage(`Add ${filePath} via nowaygit`);
+      setCommitMessage(`Add/update via nowaygit`);
     } finally {
       setGeneratingAi(false);
     }
@@ -224,18 +252,60 @@ const PushModal: React.FC<PushModalProps> = ({ artifact, onClose }) => {
         targetRepoName = r;
       }
 
-      const pushRes = await chrome.runtime.sendMessage({
-        type: 'PUSH_ARTIFACT',
-        options: {
-          owner: targetOwner,
-          repo: targetRepoName,
-          isNewRepo: createNewRepo,
-          filePath: filePath.trim(),
-          commitMessage: commitMessage.trim() || `Update ${filePath} via nowaygit`,
-          pushMode,
-          content: artifact.content
+      // Save conversation memory if conversationId exists
+      if (conversationId) {
+        await chrome.runtime.sendMessage({
+          type: 'SAVE_CONVERSATION_SETTINGS',
+          conversationId,
+          repo: { owner: targetOwner, repo: targetRepoName, folderPath: filePath }
+        });
+      }
+
+      let pushRes;
+      if (isMultiMode && allArtifacts) {
+        const filesToPush = allArtifacts.map((a) => ({
+          filePath: a.inferredFilename,
+          content: a.content
+        }));
+
+        if (generateReadme && createNewRepo) {
+          const readmeRes = await chrome.runtime.sendMessage({
+            type: 'GENERATE_README',
+            projectName: targetRepoName,
+            files: filesToPush
+          });
+          if (readmeRes?.success && readmeRes.data) {
+            filesToPush.unshift({ filePath: 'README.md', content: readmeRes.data });
+          }
         }
-      });
+
+        pushRes = await chrome.runtime.sendMessage({
+          type: 'PUSH_MULTI_ARTIFACTS',
+          options: {
+            owner: targetOwner,
+            repo: targetRepoName,
+            isNewRepo: createNewRepo,
+            commitMessage: commitMessage.trim() || `Batch update ${allArtifacts.length} files via nowaygit`,
+            pushMode,
+            files: filesToPush
+          }
+        });
+      } else {
+        if (!artifact) throw new Error('No artifact found to push.');
+
+        pushRes = await chrome.runtime.sendMessage({
+          type: 'PUSH_ARTIFACT',
+          options: {
+            owner: targetOwner,
+            repo: targetRepoName,
+            isNewRepo: createNewRepo,
+            filePath: filePath.trim(),
+            commitMessage: commitMessage.trim() || `Update ${filePath} via nowaygit`,
+            pushMode,
+            content: artifact.content
+          }
+        });
+      }
 
       if (!pushRes?.success) {
         throw new Error(pushRes?.error || 'Failed to push artifact.');
@@ -615,6 +685,17 @@ const PushModal: React.FC<PushModalProps> = ({ artifact, onClose }) => {
                         <Lock style={{ width: '12px', height: '12px' }} /> Private
                       </label>
                     </div>
+
+                    <div style={{ marginTop: '10px', paddingTop: '8px', borderTop: '1px solid #334155', fontSize: '12px' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', color: '#a855f7' }}>
+                        <input
+                          type="checkbox"
+                          checked={generateReadme}
+                          onChange={(e) => setGenerateReadme(e.target.checked)}
+                        />
+                        <Sparkles style={{ width: '12px', height: '12px' }} /> Auto-generate README.md via AI
+                      </label>
+                    </div>
                   </div>
                 ) : (
                   <div style={{ display: 'flex', gap: '8px' }}>
@@ -707,18 +788,49 @@ const PushModal: React.FC<PushModalProps> = ({ artifact, onClose }) => {
                       color: '#fde047',
                       display: 'flex',
                       alignItems: 'center',
+                      justifyContent: 'space-between',
                       gap: '6px'
                     }}
                   >
-                    <AlertCircle style={{ width: '14px', height: '14px', flexShrink: 0 }} />
-                    <span>
-                      <strong>Existing file found</strong> (SHA: {existingFile.sha.slice(0, 7)}). Push will update this file.
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <AlertCircle style={{ width: '14px', height: '14px', flexShrink: 0 }} />
+                      <span>
+                        <strong>Existing file found</strong> (SHA: {existingFile.sha.slice(0, 7)}). Push will update this file.
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => setShowDiff(true)}
+                      style={{
+                        padding: '3px 8px',
+                        backgroundColor: '#ca8a04',
+                        color: '#0f172a',
+                        border: 'none',
+                        borderRadius: '4px',
+                        fontSize: '10px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '3px',
+                        flexShrink: 0
+                      }}
+                    >
+                      <Eye style={{ width: '12px', height: '12px' }} /> View Diff
+                    </button>
                   </div>
                 ) : (
                   <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>
                     New file will be created at this path.
                   </div>
+                )}
+
+                {showDiff && existingFile && (
+                  <DiffViewer
+                    filename={filePath}
+                    oldContent={existingFile.content}
+                    newContent={artifact?.content || ''}
+                    onClose={() => setShowDiff(false)}
+                  />
                 )}
               </div>
 
@@ -964,6 +1076,7 @@ export const uiInjector = {
   },
 
   openPushModal(artifact: ArtifactData) {
+    const convId = artifactExtractor.getConversationId();
     let modalHost = document.getElementById('nowaygit-modal-host');
     if (!modalHost) {
       modalHost = document.createElement('div');
@@ -975,6 +1088,29 @@ export const uiInjector = {
     root.render(
       <PushModal
         artifact={artifact}
+        conversationId={convId}
+        onClose={() => {
+          root.unmount();
+          modalHost?.remove();
+        }}
+      />
+    );
+  },
+
+  openMultiPushModal(allArtifacts: ArtifactData[]) {
+    const convId = artifactExtractor.getConversationId();
+    let modalHost = document.getElementById('nowaygit-modal-host');
+    if (!modalHost) {
+      modalHost = document.createElement('div');
+      modalHost.id = 'nowaygit-modal-host';
+      document.body.appendChild(modalHost);
+    }
+
+    const root = createRoot(modalHost);
+    root.render(
+      <PushModal
+        allArtifacts={allArtifacts}
+        conversationId={convId}
         onClose={() => {
           root.unmount();
           modalHost?.remove();

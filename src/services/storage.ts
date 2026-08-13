@@ -52,5 +52,23 @@ export const storageService = {
     const updated = { ...current, ...settings };
     await chrome.storage.local.set({ nowaygit_settings: updated });
     return updated;
+  },
+
+  // Per-conversation settings memory
+  async getConversationRepo(conversationId: string): Promise<{ owner: string; repo: string; folderPath: string } | null> {
+    const settings = await this.getSettings();
+    if (settings.conversationRepos && settings.conversationRepos[conversationId]) {
+      return settings.conversationRepos[conversationId];
+    }
+    return null;
+  },
+
+  async saveConversationRepo(
+    conversationId: string,
+    repo: { owner: string; repo: string; folderPath: string }
+  ): Promise<void> {
+    const settings = await this.getSettings();
+    const conversationRepos = { ...(settings.conversationRepos || {}), [conversationId]: repo };
+    await this.saveSettings({ conversationRepos });
   }
 };

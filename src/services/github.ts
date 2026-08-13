@@ -3,7 +3,8 @@ import {
   GitHubRepo,
   GitHubUser,
   PushOptions,
-  PushResult
+  PushResult,
+  MultiPushOptions
 } from '../types';
 import { storageService } from './storage';
 
@@ -327,6 +328,227 @@ export const githubService = {
         filePath: cleanPath
       }
     });
+
+    return {
+      success: true,
+      commitUrl,
+      prUrl,
+      branchName: createdBranchName
+    };
+  },
+
+  /**
+   * Push multiple files atomically using GitHub Git Data API (Blobs -> Tree -> Commit -> Ref)
+   */
+  async pushMultipleArtifacts(options: MultiPushOptions): Promise<PushResult> {
+    const token = await storageService.getAccessToken();
+    if (!token) throw new Error('Not authenticated with GitHub');
+
+    const { owner, repo, commitMessage, pushMode, files } = options;
+    if (!files || files.length === 0) {
+      throw new Error('No files provided for batch push');
+    }
+
+    // 1. Fetch repo details to get default branch name
+    const repoRes = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github.v3+json'
+      }
+    });
+
+    if (!repoRes.ok) {
+      throw new Error(`Target repository "${owner}/${repo}" not found or inaccessible.`);
+    }
+
+    const repoData = await repoRes.json();
+    const defaultBranch: string = repoData.default_branch || 'main';
+
+    // 2. Fetch latest commit SHA on default branch
+    const refRes = await fetch(
+      `https://api.github.com/repos/${owner}/${repo}/git/ref/heads/${defaultBranch}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/vnd.github.v3+json'
+        }
+      }
+    );
+
+    if (!refRes.ok) {
+      throw new Error(`Could not fetch default branch "${defaultBranch}" ref.`);
+    }
+
+    const refData = await refRes.json();
+    const parentSha: string = refData.object.sha;
+
+    // 3. Setup target branch name
+    let targetBranch = defaultBranch;
+    let createdBranchName: string | undefined;
+
+    if (pushMode === 'branch_pr') {
+      const timestamp = Date.now().toString().slice(-5);
+      createdBranchName = options.targetBranch || `nowaygit-batch-${timestamp}`;
+      targetBranch = createdBranchName || defaultBranch;
+
+      // Create branch ref
+      const createBranchRes = await fetch(
+        `https://api.github.com/repos/${owner}/${repo}/git/refs`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/vnd.github.v3+json',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            ref: `refs/heads/${createdBranchName}`,
+            sha: parentSha
+          })
+        }
+      );
+
+      if (!createBranchRes.ok) {
+        const err = await createBranchRes.json().catch(() => ({}));
+        throw new Error(err.message || `Failed to create branch "${createdBranchName}".`);
+      }
+    }
+
+    // 4. Fetch base tree SHA from parent commit
+    const commitRes = await fetch(
+      `https://api.github.com/repos/${owner}/${repo}/git/commits/${parentSha}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/vnd.github.v3+json'
+        }
+      }
+    );
+    const commitData = await commitRes.json();
+    const baseTreeSha: string = commitData.tree.sha;
+
+    // 5. Create Blobs for each file & construct Tree entries
+    const treeItems = [];
+    for (const f of files) {
+      const cleanPath = f.filePath.startsWith('/') ? f.filePath.slice(1) : f.filePath;
+      const base64Content = btoa(unescape(encodeURIComponent(f.content)));
+
+      const blobRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/blobs`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/vnd.github.v3+json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          content: base64Content,
+          encoding: 'base64'
+        })
+      });
+
+      if (!blobRes.ok) {
+        throw new Error(`Failed to create blob for file "${cleanPath}".`);
+      }
+
+      const blobData = await blobRes.json();
+      treeItems.push({
+        path: cleanPath,
+        mode: '100644',
+        type: 'blob',
+        sha: blobData.sha
+      });
+    }
+
+    // 6. Create Git Tree
+    const treeRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        base_tree: baseTreeSha,
+        tree: treeItems
+      })
+    });
+
+    if (!treeRes.ok) {
+      throw new Error(`Failed to create Git tree for batch push.`);
+    }
+
+    const treeData = await treeRes.json();
+    const treeSha: string = treeData.sha;
+
+    // 7. Create Git Commit
+    const newCommitRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/commits`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        message: commitMessage || `Batch push ${files.length} files via nowaygit`,
+        tree: treeSha,
+        parents: [parentSha]
+      })
+    });
+
+    if (!newCommitRes.ok) {
+      throw new Error(`Failed to create batch commit.`);
+    }
+
+    const newCommitData = await newCommitRes.json();
+    const commitSha: string = newCommitData.sha;
+    const commitUrl = newCommitData.html_url;
+
+    // 8. Update Target Branch Ref
+    const updateRefRes = await fetch(
+      `https://api.github.com/repos/${owner}/${repo}/git/refs/heads/${targetBranch}`,
+      {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/vnd.github.v3+json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          sha: commitSha,
+          force: true
+        })
+      }
+    );
+
+    if (!updateRefRes.ok) {
+      throw new Error(`Failed to update branch ref "${targetBranch}".`);
+    }
+
+    // 9. Open Pull Request if branch_pr mode
+    let prUrl: string | undefined;
+    if (pushMode === 'branch_pr' && createdBranchName) {
+      const prRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/vnd.github.v3+json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          title: options.prTitle || commitMessage || `Batch update ${files.length} files via nowaygit`,
+          body:
+            options.prBody ||
+            `Automated Batch Pull Request generated by **nowaygit** from claude.ai.\n\nIncluded files (${files.length}):\n${files.map((f: { filePath: string }) => `- \`${f.filePath}\``).join('\n')}`,
+          head: createdBranchName,
+          base: defaultBranch
+        })
+      });
+
+      if (prRes.ok) {
+        const prData = await prRes.json();
+        prUrl = prData.html_url;
+      }
+    }
 
     return {
       success: true,

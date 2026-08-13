@@ -74,6 +74,10 @@ async function handleMessage(message: ExtensionMessage): Promise<any> {
       return await githubService.pushArtifact(message.options);
     }
 
+    case 'PUSH_MULTI_ARTIFACTS': {
+      return await githubService.pushMultipleArtifacts(message.options);
+    }
+
     case 'GENERATE_COMMIT_MESSAGE': {
       return await claudeAiService.generateCommitMessage(
         message.filename,
@@ -82,12 +86,25 @@ async function handleMessage(message: ExtensionMessage): Promise<any> {
       );
     }
 
+    case 'GENERATE_README': {
+      return await claudeAiService.generateReadme(message.projectName, message.files);
+    }
+
     case 'GET_SETTINGS': {
       return await storageService.getSettings();
     }
 
     case 'SAVE_SETTINGS': {
       return await storageService.saveSettings(message.settings);
+    }
+
+    case 'GET_CONVERSATION_SETTINGS': {
+      return await storageService.getConversationRepo(message.conversationId);
+    }
+
+    case 'SAVE_CONVERSATION_SETTINGS': {
+      await storageService.saveConversationRepo(message.conversationId, message.repo);
+      return { success: true };
     }
 
     default:
