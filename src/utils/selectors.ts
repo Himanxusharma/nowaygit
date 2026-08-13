@@ -48,5 +48,14 @@ export const SELECTORS = {
   CONVERSATION_HEADER_TARGET: [
     'header',
     '.conversation-header'
+  ],
+
+  // Chat input field/container targets for "Import from Git" button injection
+  CHAT_INPUT_CONTAINERS: [
+    'div.flex.components-chat-input-textarea',
+    'fieldset div.flex.flex-col',
+    '[data-testid="chat-input"]',
+    'textarea[placeholder*="Ask Claude"]',
+    '.chat-input-container'
   ]
 };

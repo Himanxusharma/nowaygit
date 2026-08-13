@@ -55,7 +55,7 @@ export const storageService = {
   },
 
   // Per-conversation settings memory
-  async getConversationRepo(conversationId: string): Promise<{ owner: string; repo: string; folderPath: string } | null> {
+  async getConversationRepo(conversationId: string): Promise<{ owner: string; repo: string; folderPath: string; provider?: any } | null> {
     const settings = await this.getSettings();
     if (settings.conversationRepos && settings.conversationRepos[conversationId]) {
       return settings.conversationRepos[conversationId];
@@ -65,7 +65,7 @@ export const storageService = {
 
   async saveConversationRepo(
     conversationId: string,
-    repo: { owner: string; repo: string; folderPath: string }
+    repo: { owner: string; repo: string; folderPath: string; provider?: any }
   ): Promise<void> {
     const settings = await this.getSettings();
     const conversationRepos = { ...(settings.conversationRepos || {}), [conversationId]: repo };

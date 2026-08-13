@@ -1,5 +1,9 @@
 import { artifactExtractor } from './extractor';
 import { uiInjector } from './injector';
+import { importUiInjector } from './importModal';
+
+let lastWatchPushedContentMap: Record<string, string> = {};
+let isWatchPushing = false;
 
 function initContentScript() {
   // Initial check
@@ -16,10 +20,54 @@ function initContentScript() {
   });
 }
 
-function checkAndInject() {
+async function checkAndInject() {
+  // 1. Inject Import Git File button near chat input
+  importUiInjector.injectImportButton();
+
   const artifact = artifactExtractor.extractCurrentArtifact();
   if (artifact) {
     uiInjector.injectButton(artifact);
+
+    // 2. Watch Mode Check
+    const conversationId = artifactExtractor.getConversationId();
+    if (conversationId && !isWatchPushing) {
+      try {
+        const settingsRes = await chrome.runtime.sendMessage({ type: 'GET_SETTINGS' });
+        const settings = settingsRes?.data || {};
+        const watchConfig = settings.watchConfigs?.[conversationId];
+
+        if (watchConfig) {
+          const currentContent = artifact.content.trim();
+          const lastContent = lastWatchPushedContentMap[conversationId];
+
+          if (currentContent && currentContent !== lastContent) {
+            // Content changed! Trigger auto-push.
+            isWatchPushing = true;
+            lastWatchPushedContentMap[conversationId] = currentContent;
+
+            const pushRes = await chrome.runtime.sendMessage({
+              type: 'PUSH_ARTIFACT_BY_PROVIDER',
+              provider: watchConfig.provider,
+              options: {
+                owner: watchConfig.owner,
+                repo: watchConfig.repo,
+                filePath: watchConfig.filePath,
+                commitMessage: `Auto-sync: update ${watchConfig.filePath} [watch mode]`,
+                pushMode: watchConfig.pushMode,
+                content: artifact.content
+              }
+            });
+
+            if (pushRes?.success) {
+              console.log('[nowaygit] Watch Mode auto-pushed successfully.');
+            }
+            isWatchPushing = false;
+          }
+        }
+      } catch (err) {
+        isWatchPushing = false;
+      }
+    }
   }
 
   const allArtifacts = artifactExtractor.extractAllArtifacts();

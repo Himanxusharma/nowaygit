@@ -180,6 +180,33 @@ export const githubService = {
   },
 
   /**
+   * Get recursive repository file tree using Git Data Trees API
+   */
+  async getFileTree(owner: string, repo: string, ref?: string): Promise<string[]> {
+    const token = await storageService.getAccessToken();
+    if (!token) throw new Error('Not authenticated with GitHub');
+    const branchRef = ref || 'main';
+
+    const url = `https://api.github.com/repos/${owner}/${repo}/git/trees/${encodeURIComponent(branchRef)}?recursive=1`;
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github.v3+json'
+      }
+    });
+
+    if (!response.ok) {
+      return [];
+    }
+
+    const data = await response.json();
+    const tree = data.tree || [];
+    return tree
+      .filter((item: any) => item.type === 'blob')
+      .map((item: any) => item.path);
+  },
+
+  /**
    * Push artifact file to GitHub (supporting direct commit or branch + PR)
    */
   async pushArtifact(options: PushOptions): Promise<PushResult> {

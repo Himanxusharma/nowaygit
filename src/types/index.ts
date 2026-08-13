@@ -84,6 +84,28 @@ export interface DiffLine {
   text: string;
 }
 
+export type GitProvider = 'github' | 'gitlab' | 'bitbucket';
+
+export interface PresetDestination {
+  id: string;
+  name: string;
+  provider: GitProvider;
+  owner: string;
+  repo: string;
+  branch: string;
+  folderPath: string;
+  pushMode: 'branch_pr' | 'direct';
+}
+
+export interface WatchConfig {
+  provider: GitProvider;
+  owner: string;
+  repo: string;
+  filePath: string;
+  pushMode: 'branch_pr' | 'direct';
+  branch?: string;
+}
+
 export interface ExtensionSettings {
   githubClientId: string;
   anthropicApiKey?: string;
@@ -92,10 +114,28 @@ export interface ExtensionSettings {
     owner: string;
     repo: string;
     filePath: string;
+    provider?: GitProvider;
   };
-  conversationRepos?: Record<string, { owner: string; repo: string; folderPath: string }>;
+  conversationRepos?: Record<string, { owner: string; repo: string; folderPath: string; provider?: GitProvider }>;
   onboardingCompleted?: boolean;
   directPushConfirmed?: boolean;
+  
+  // GitLab connection
+  gitlabToken?: string;
+  gitlabHost?: string; // Custom self-hosted instance (default: gitlab.com)
+  
+  // Bitbucket connection
+  bitbucketToken?: string;
+  bitbucketUsername?: string;
+  
+  // Vercel integration
+  vercelDeployHooks?: Array<{ id: string; name: string; url: string }>;
+  
+  // Shared Presets
+  presets?: PresetDestination[];
+  
+  // Watch Mode settings
+  watchConfigs?: Record<string, WatchConfig>;
 }
 
 export interface GitHubUser {
@@ -123,7 +163,14 @@ export type MessageType =
   | 'GET_CONVERSATION_SETTINGS'
   | 'SAVE_CONVERSATION_SETTINGS'
   | 'GET_DIAGNOSTICS'
-  | 'CLEAR_DIAGNOSTICS';
+  | 'CLEAR_DIAGNOSTICS'
+  | 'TRIGGER_VERCEL_DEPLOY'
+  | 'GET_REPOS_BY_PROVIDER'
+  | 'CREATE_REPO_BY_PROVIDER'
+  | 'PUSH_ARTIFACT_BY_PROVIDER'
+  | 'PUSH_MULTI_ARTIFACTS_BY_PROVIDER'
+  | 'GET_FILE_CONTENTS_BY_PROVIDER'
+  | 'GET_FILE_TREE';
 
 export interface BaseMessage {
   type: MessageType;
@@ -215,6 +262,53 @@ export interface ClearDiagnosticsMessage extends BaseMessage {
   type: 'CLEAR_DIAGNOSTICS';
 }
 
+export interface TriggerVercelDeployMessage extends BaseMessage {
+  type: 'TRIGGER_VERCEL_DEPLOY';
+  url: string;
+}
+
+export interface GetReposByProviderMessage extends BaseMessage {
+  type: 'GET_REPOS_BY_PROVIDER';
+  provider: GitProvider;
+}
+
+export interface CreateRepoByProviderMessage extends BaseMessage {
+  type: 'CREATE_REPO_BY_PROVIDER';
+  provider: GitProvider;
+  name: string;
+  description?: string;
+  isPrivate: boolean;
+}
+
+export interface PushArtifactByProviderMessage extends BaseMessage {
+  type: 'PUSH_ARTIFACT_BY_PROVIDER';
+  provider: GitProvider;
+  options: PushOptions;
+}
+
+export interface PushMultiArtifactsByProviderMessage extends BaseMessage {
+  type: 'PUSH_MULTI_ARTIFACTS_BY_PROVIDER';
+  provider: GitProvider;
+  options: MultiPushOptions;
+}
+
+export interface GetFileContentsByProviderMessage extends BaseMessage {
+  type: 'GET_FILE_CONTENTS_BY_PROVIDER';
+  provider: GitProvider;
+  owner: string;
+  repo: string;
+  path: string;
+  ref?: string;
+}
+
+export interface GetFileTreeMessage extends BaseMessage {
+  type: 'GET_FILE_TREE';
+  provider: GitProvider;
+  owner: string;
+  repo: string;
+  ref?: string;
+}
+
 export type ExtensionMessage =
   | InitiateAuthMessage
   | PollAuthMessage
@@ -232,4 +326,11 @@ export type ExtensionMessage =
   | GetConversationSettingsMessage
   | SaveConversationSettingsMessage
   | GetDiagnosticsMessage
-  | ClearDiagnosticsMessage;
+  | ClearDiagnosticsMessage
+  | TriggerVercelDeployMessage
+  | GetReposByProviderMessage
+  | CreateRepoByProviderMessage
+  | PushArtifactByProviderMessage
+  | PushMultiArtifactsByProviderMessage
+  | GetFileContentsByProviderMessage
+  | GetFileTreeMessage;
