@@ -25,11 +25,19 @@ export const githubService = {
       })
     });
 
+    const data = await response.json().catch(() => null);
+
     if (!response.ok) {
-      throw new Error(`Failed to initiate Device Flow: ${response.statusText}`);
+      const desc = data?.error_description || data?.error || response.statusText || `Status ${response.status}`;
+      throw new Error(`Failed to initiate Device Flow: ${desc}`);
     }
 
-    return await response.json();
+    if (!data || data.error) {
+      const desc = data?.error_description || data?.error || 'Invalid response format from GitHub';
+      throw new Error(`GitHub OAuth Error: ${desc}`);
+    }
+
+    return data;
   },
 
   /**

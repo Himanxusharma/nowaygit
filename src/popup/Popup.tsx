@@ -122,6 +122,13 @@ export const Popup: React.FC = () => {
     setTimeout(() => setCopiedDiag(false), 2000);
   };
 
+  const handleClearDiagnostics = async () => {
+    const res = await chrome.runtime.sendMessage({ type: 'CLEAR_DIAGNOSTICS' });
+    if (res?.success) {
+      setDiagnostics([]);
+    }
+  };
+
   const handleStartAuth = async () => {
     try {
       const res = await chrome.runtime.sendMessage({ type: 'INITIATE_AUTH' });
@@ -893,30 +900,48 @@ export const Popup: React.FC = () => {
             <span style={{ fontSize: '12px', fontWeight: 600, color: '#cbd5e1' }}>
               Local Diagnostics (Last {diagnostics.length})
             </span>
-            <button
-              onClick={handleCopyDiagnostics}
-              disabled={diagnostics.length === 0}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: copiedDiag ? '#4ade80' : '#818cf8',
-                fontSize: '11px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px'
-              }}
-            >
-              {copiedDiag ? (
-                <>
-                  <Check style={{ width: '12px', height: '12px' }} /> Copied
-                </>
-              ) : (
-                <>
-                  <Copy style={{ width: '12px', height: '12px' }} /> Copy Logs
-                </>
-              )}
-            </button>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={handleCopyDiagnostics}
+                disabled={diagnostics.length === 0}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: copiedDiag ? '#4ade80' : '#818cf8',
+                  fontSize: '11px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                {copiedDiag ? (
+                  <>
+                    <Check style={{ width: '12px', height: '12px' }} /> Copied
+                  </>
+                ) : (
+                  <>
+                    <Copy style={{ width: '12px', height: '12px' }} /> Copy Logs
+                  </>
+                )}
+              </button>
+              <button
+                onClick={handleClearDiagnostics}
+                disabled={diagnostics.length === 0}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#ef4444',
+                  fontSize: '11px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                Clear Logs
+              </button>
+            </div>
           </div>
 
           <div
