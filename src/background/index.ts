@@ -2,6 +2,7 @@ import { ExtensionMessage } from '../types';
 import { githubService } from '../services/github';
 import { storageService } from '../services/storage';
 import { claudeAiService } from '../services/claudeAi';
+import { logger } from '../services/logger';
 
 // Active polling timers
 let activePollTimer: number | null = null;
@@ -10,7 +11,10 @@ chrome.runtime.onMessage.addListener(
   (message: ExtensionMessage, _sender, sendResponse: (response: any) => void) => {
     handleMessage(message)
       .then((res) => sendResponse({ success: true, data: res }))
-      .catch((err) => sendResponse({ success: false, error: err.message || String(err) }));
+      .catch((err) => {
+        logger.logError('BACKGROUND', err, `Action: ${message.type}`);
+        sendResponse({ success: false, error: err.message || String(err) });
+      });
 
     return true; // Keep channel open for async response
   }
@@ -104,6 +108,15 @@ async function handleMessage(message: ExtensionMessage): Promise<any> {
 
     case 'SAVE_CONVERSATION_SETTINGS': {
       await storageService.saveConversationRepo(message.conversationId, message.repo);
+      return { success: true };
+    }
+
+    case 'GET_DIAGNOSTICS': {
+      return await logger.getLogs();
+    }
+
+    case 'CLEAR_DIAGNOSTICS': {
+      await logger.clearLogs();
       return { success: true };
     }
 

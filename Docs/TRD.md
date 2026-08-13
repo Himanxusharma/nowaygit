@@ -1,5 +1,5 @@
 # Technical Requirements Document (TRD) — Production
-## Claude → GitHub Bridge
+## nowaygit
 **Version 2.0 — Production-Ready**
 
 ---

@@ -228,12 +228,17 @@ export const PushModal: React.FC<PushModalProps> = ({
       let targetRepoName = '';
 
       if (createNewRepo) {
-        if (!newRepoName.trim()) {
+        const cleanName = newRepoName.trim();
+        if (!cleanName) {
           throw new Error('Please enter a name for the new repository.');
         }
+        if (!/^[a-zA-Z0-9._-]+$/.test(cleanName)) {
+          throw new Error('Repository name can only contain letters, numbers, hyphens, periods, and underscores.');
+        }
+
         const createRes = await chrome.runtime.sendMessage({
           type: 'CREATE_REPO',
-          name: newRepoName.trim(),
+          name: cleanName,
           description: newRepoDesc.trim(),
           isPrivate
         });
@@ -250,6 +255,11 @@ export const PushModal: React.FC<PushModalProps> = ({
         const [o, r] = selectedRepo.split('/');
         targetOwner = o;
         targetRepoName = r;
+      }
+
+      // Check file size (100MB hard limit per FR-7.4)
+      if (artifact && artifact.content && artifact.content.length > 100 * 1024 * 1024) {
+        throw new Error('This file is too large to push directly (>100MB).');
       }
 
       // Save conversation memory if conversationId exists
@@ -438,15 +448,47 @@ export const PushModal: React.FC<PushModalProps> = ({
                   </p>
                   <div
                     style={{
-                      fontSize: '24px',
-                      fontWeight: 700,
-                      letterSpacing: '4px',
-                      color: '#a855f7',
-                      fontFamily: 'monospace',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '12px',
                       marginBottom: '12px'
                     }}
                   >
-                    {deviceCode.user_code}
+                    <div
+                      style={{
+                        fontSize: '24px',
+                        fontWeight: 700,
+                        letterSpacing: '4px',
+                        color: '#a855f7',
+                        fontFamily: 'monospace'
+                      }}
+                    >
+                      {deviceCode.user_code}
+                    </div>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(deviceCode.user_code);
+                        const btn = document.getElementById('nowaygit-copy-code-btn');
+                        if (btn) btn.innerText = 'Copied!';
+                        setTimeout(() => {
+                          if (btn) btn.innerText = 'Copy Code';
+                        }, 2000);
+                      }}
+                      id="nowaygit-copy-code-btn"
+                      style={{
+                        padding: '4px 10px',
+                        backgroundColor: '#334155',
+                        color: '#cbd5e1',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Copy Code
+                    </button>
                   </div>
                   <a
                     href={deviceCode.verification_uri}
@@ -916,7 +958,20 @@ export const PushModal: React.FC<PushModalProps> = ({
                   </div>
 
                   <div
-                    onClick={() => setPushMode('direct')}
+                    onClick={async () => {
+                      const settingsRes = await chrome.runtime.sendMessage({ type: 'GET_SETTINGS' });
+                      if (!settingsRes?.data?.directPushConfirmed) {
+                        const confirmed = window.confirm(
+                          'Direct Push commits directly to the default branch without opening a Pull Request. Are you sure?'
+                        );
+                        if (!confirmed) return;
+                        await chrome.runtime.sendMessage({
+                          type: 'SAVE_SETTINGS',
+                          settings: { directPushConfirmed: true }
+                        });
+                      }
+                      setPushMode('direct');
+                    }}
                     style={{
                       padding: '10px 12px',
                       backgroundColor: pushMode === 'direct' ? 'rgba(99, 102, 241, 0.15)' : '#1e293b',

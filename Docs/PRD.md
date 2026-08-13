@@ -1,5 +1,5 @@
 # Product Requirements Document (PRD) — Production
-## Claude → GitHub Bridge
+## nowaygit
 **Version 2.0 — Production-Ready**
 
 ---

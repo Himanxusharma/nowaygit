@@ -1,4 +1,5 @@
 import { ArtifactData } from '../types';
+import { SELECTORS } from '../utils/selectors';
 
 export const LANGUAGE_EXTENSION_MAP: Record<string, string> = {
   react: 'tsx',
@@ -27,16 +28,16 @@ export const artifactExtractor = {
   /**
    * Infer appropriate file extension from language tag or content heuristic
    */
-  inferExtension(langOrType: string): string {
+  inferExtension(langOrType: string): { extension: string; typeUnknown: boolean } {
     const clean = langOrType.toLowerCase().trim();
     if (LANGUAGE_EXTENSION_MAP[clean]) {
-      return LANGUAGE_EXTENSION_MAP[clean];
+      return { extension: LANGUAGE_EXTENSION_MAP[clean], typeUnknown: false };
     }
     // Generic search in string
     for (const [key, ext] of Object.entries(LANGUAGE_EXTENSION_MAP)) {
-      if (clean.includes(key)) return ext;
+      if (clean.includes(key)) return { extension: ext, typeUnknown: false };
     }
-    return 'txt';
+    return { extension: 'txt', typeUnknown: true };
   },
 
   /**
@@ -63,34 +64,40 @@ export const artifactExtractor = {
    * Extract active artifact details from claude.ai DOM
    */
   extractCurrentArtifact(): ArtifactData | null {
-    // Look for claude.ai artifact drawer or code container
-    // Primary selectors used across current & legacy claude.ai layouts
-    const artifactPanel =
-      document.querySelector('[data-testid="artifact-content"]') ||
-      document.querySelector('.artifact-content') ||
-      document.querySelector('div[class*="artifact-"]') ||
-      document.querySelector('aside[class*="artifact"]') ||
-      document.querySelector('.code-block') ||
-      document.querySelector('pre');
+    // Look for claude.ai artifact drawer or code container using SELECTORS
+    let artifactPanel: Element | null = null;
+    for (const selector of SELECTORS.ARTIFACT_CONTAINERS) {
+      const found = document.querySelector(selector);
+      if (found) {
+        artifactPanel = found;
+        break;
+      }
+    }
 
     if (!artifactPanel) {
       return null;
     }
 
     // Try extracting title from header
-    const titleEl =
-      document.querySelector('[data-testid="artifact-header"] h1, [data-testid="artifact-header"] h2, [data-testid="artifact-header"] span') ||
-      document.querySelector('.artifact-header') ||
-      document.querySelector('header span') ||
-      document.querySelector('div[class*="header"] span');
-
+    let titleEl: Element | null = null;
+    for (const selector of SELECTORS.ARTIFACT_HEADER_TITLE) {
+      const found = document.querySelector(selector);
+      if (found) {
+        titleEl = found;
+        break;
+      }
+    }
     const title = titleEl?.textContent?.trim() || 'claude_artifact';
 
     // Try extracting language tag
-    const langEl =
-      artifactPanel.querySelector('[data-language]') ||
-      document.querySelector('.language-label') ||
-      artifactPanel.querySelector('code[class*="language-"]');
+    let langEl: Element | null = null;
+    for (const selector of SELECTORS.LANGUAGE_LABEL) {
+      const found = artifactPanel.querySelector(selector) || document.querySelector(selector);
+      if (found) {
+        langEl = found;
+        break;
+      }
+    }
 
     let language = 'text';
     if (langEl) {
@@ -107,11 +114,12 @@ export const artifactExtractor = {
     const codeEl = artifactPanel.querySelector('code') || artifactPanel.querySelector('pre') || artifactPanel;
     const content = codeEl.textContent || '';
 
-    if (!content.trim()) {
+    // FR-2.4: Extraction self-check heuristic (non-empty & reasonable structure)
+    if (!content.trim() || content.trim().length < 2) {
       return null;
     }
 
-    const extension = this.inferExtension(language);
+    const { extension } = this.inferExtension(language);
     const inferredFilename = this.sanitizeFilename(title, extension);
 
     return {
@@ -166,7 +174,7 @@ export const artifactExtractor = {
           }
         }
 
-        const extension = this.inferExtension(language);
+        const { extension } = this.inferExtension(language);
         const inferredFilename = this.sanitizeFilename(title, extension);
 
         artifacts.push({

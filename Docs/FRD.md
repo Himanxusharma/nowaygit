@@ -1,5 +1,5 @@
 # Functional Requirements Document (FRD) — Production
-## Claude → GitHub Bridge
+## nowaygit
 **Version 2.0 — Production-Ready**
 
 ---

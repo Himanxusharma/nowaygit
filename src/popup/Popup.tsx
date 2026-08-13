@@ -8,9 +8,14 @@ import {
   CheckCircle,
   GitBranch,
   Settings,
-  Github
+  Github,
+  Terminal,
+  Copy,
+  Check
 } from 'lucide-react';
 import { GitHubUser, ExtensionSettings, GitHubDeviceCodeResponse } from '../types';
+import { Onboarding } from './Onboarding';
+import { DiagnosticLog } from '../services/logger';
 
 export const Popup: React.FC = () => {
   const [auth, setAuth] = useState<{ authenticated: boolean; user: GitHubUser | null }>({
@@ -23,11 +28,16 @@ export const Popup: React.FC = () => {
   });
   const [deviceCode, setDeviceCode] = useState<GitHubDeviceCodeResponse | null>(null);
 
+  // Diagnostics & onboarding state
+  const [diagnostics, setDiagnostics] = useState<DiagnosticLog[]>([]);
+  const [copiedDiag, setCopiedDiag] = useState<boolean>(false);
+  const [showOnboarding, setShowOnboarding] = useState<boolean>(false);
+
   // Editable settings inputs
   const [apiKeyInput, setApiKeyInput] = useState<string>('');
   const [clientIdInput, setClientIdInput] = useState<string>('');
   const [pushModeInput, setPushModeInput] = useState<'branch_pr' | 'direct'>('branch_pr');
-  const [activeTab, setActiveTab] = useState<'main' | 'settings'>('main');
+  const [activeTab, setActiveTab] = useState<'main' | 'settings' | 'diagnostics'>('main');
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -52,11 +62,35 @@ export const Popup: React.FC = () => {
         setApiKeyInput(s.anthropicApiKey || '');
         setClientIdInput(s.githubClientId || 'Ov23liZ2Ym642n4jZ9aO');
         setPushModeInput(s.defaultPushMode || 'branch_pr');
+        if (!s.onboardingCompleted) {
+          setShowOnboarding(true);
+        }
+      }
+
+      // Fetch Diagnostics
+      const diagRes = await chrome.runtime.sendMessage({ type: 'GET_DIAGNOSTICS' });
+      if (diagRes?.success && Array.isArray(diagRes.data)) {
+        setDiagnostics(diagRes.data);
       }
     } catch {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCompleteOnboarding = async () => {
+    setShowOnboarding(false);
+    await chrome.runtime.sendMessage({
+      type: 'SAVE_SETTINGS',
+      settings: { onboardingCompleted: true }
+    });
+  };
+
+  const handleCopyDiagnostics = () => {
+    const text = JSON.stringify(diagnostics, null, 2);
+    navigator.clipboard.writeText(text);
+    setCopiedDiag(true);
+    setTimeout(() => setCopiedDiag(false), 2000);
   };
 
   const handleStartAuth = async () => {
@@ -110,6 +144,10 @@ export const Popup: React.FC = () => {
         Loading nowaygit...
       </div>
     );
+  }
+
+  if (showOnboarding) {
+    return <Onboarding onComplete={handleCompleteOnboarding} onStartAuth={handleStartAuth} />;
   }
 
   return (
@@ -175,6 +213,24 @@ export const Popup: React.FC = () => {
             }}
           >
             <Settings style={{ width: '12px', height: '12px' }} />
+          </button>
+          <button
+            onClick={() => setActiveTab('diagnostics')}
+            title="Diagnostics"
+            style={{
+              padding: '4px 8px',
+              fontSize: '11px',
+              backgroundColor: activeTab === 'diagnostics' ? '#334155' : 'transparent',
+              color: activeTab === 'diagnostics' ? '#fff' : '#94a3b8',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}
+          >
+            <Terminal style={{ width: '12px', height: '12px' }} />
           </button>
         </div>
       </div>
@@ -471,6 +527,86 @@ export const Popup: React.FC = () => {
               </>
             )}
           </button>
+        </div>
+      )}
+
+      {/* Diagnostics Tab */}
+      {activeTab === 'diagnostics' && (
+        <div style={{ padding: '16px' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '10px'
+            }}
+          >
+            <span style={{ fontSize: '12px', fontWeight: 600, color: '#cbd5e1' }}>
+              Local Diagnostics (Last {diagnostics.length})
+            </span>
+            <button
+              onClick={handleCopyDiagnostics}
+              disabled={diagnostics.length === 0}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: copiedDiag ? '#4ade80' : '#818cf8',
+                fontSize: '11px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+            >
+              {copiedDiag ? (
+                <>
+                  <Check style={{ width: '12px', height: '12px' }} /> Copied
+                </>
+              ) : (
+                <>
+                  <Copy style={{ width: '12px', height: '12px' }} /> Copy Logs
+                </>
+              )}
+            </button>
+          </div>
+
+          <div
+            style={{
+              maxHeight: '260px',
+              overflowY: 'auto',
+              backgroundColor: '#020617',
+              border: '1px solid #1e293b',
+              borderRadius: '6px',
+              padding: '10px',
+              fontFamily: 'monospace',
+              fontSize: '10px',
+              color: '#cbd5e1',
+              lineHeight: 1.4
+            }}
+          >
+            {diagnostics.length === 0 ? (
+              <div style={{ color: '#64748b', textAlign: 'center', padding: '20px 0' }}>
+                No diagnostic errors recorded.
+              </div>
+            ) : (
+              diagnostics.map((log, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    marginBottom: '8px',
+                    paddingBottom: '8px',
+                    borderBottom: '1px solid #1e293b'
+                  }}
+                >
+                  <div style={{ color: '#f87171', fontWeight: 600 }}>
+                    [{new Date(log.timestamp).toLocaleTimeString()}] {log.source}
+                  </div>
+                  <div>{log.message}</div>
+                  {log.details && <div style={{ color: '#64748b' }}>{log.details}</div>}
+                </div>
+              ))
+            )}
+          </div>
         </div>
       )}
     </div>

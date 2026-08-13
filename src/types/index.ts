@@ -94,6 +94,8 @@ export interface ExtensionSettings {
     filePath: string;
   };
   conversationRepos?: Record<string, { owner: string; repo: string; folderPath: string }>;
+  onboardingCompleted?: boolean;
+  directPushConfirmed?: boolean;
 }
 
 export interface GitHubUser {
@@ -119,7 +121,9 @@ export type MessageType =
   | 'GET_SETTINGS'
   | 'SAVE_SETTINGS'
   | 'GET_CONVERSATION_SETTINGS'
-  | 'SAVE_CONVERSATION_SETTINGS';
+  | 'SAVE_CONVERSATION_SETTINGS'
+  | 'GET_DIAGNOSTICS'
+  | 'CLEAR_DIAGNOSTICS';
 
 export interface BaseMessage {
   type: MessageType;
@@ -203,6 +207,14 @@ export interface SaveConversationSettingsMessage extends BaseMessage {
   repo: { owner: string; repo: string; folderPath: string };
 }
 
+export interface GetDiagnosticsMessage extends BaseMessage {
+  type: 'GET_DIAGNOSTICS';
+}
+
+export interface ClearDiagnosticsMessage extends BaseMessage {
+  type: 'CLEAR_DIAGNOSTICS';
+}
+
 export type ExtensionMessage =
   | InitiateAuthMessage
   | PollAuthMessage
@@ -218,4 +230,6 @@ export type ExtensionMessage =
   | GetSettingsMessage
   | SaveSettingsMessage
   | GetConversationSettingsMessage
-  | SaveConversationSettingsMessage;
+  | SaveConversationSettingsMessage
+  | GetDiagnosticsMessage
+  | ClearDiagnosticsMessage;
