@@ -288,16 +288,68 @@ export const Popup: React.FC = () => {
   }
 
   return (
-    <div style={{ width: '340px', backgroundColor: '#0f172a', color: '#f8fafc' }}>
+    <div style={{ width: '340px', backgroundColor: '#fafaf9', color: '#1e293b', fontFamily: 'Inter, system-ui, sans-serif' }}>
+      <style>{`
+        input, select, button {
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        input:focus, select:focus {
+          outline: none;
+          border-color: #0f172a !important;
+          box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.1) !important;
+        }
+        .btn-primary:hover {
+          background-color: #1e293b !important;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 10px rgba(15, 23, 42, 0.15) !important;
+        }
+        .btn-primary:active {
+          transform: translateY(0);
+          box-shadow: none !important;
+        }
+        .card-hover {
+          transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+        }
+        .card-hover:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+        }
+        .tab-btn {
+          transition: all 0.2s ease;
+        }
+        .tab-btn:hover {
+          background-color: #f1f5f9 !important;
+          color: #0f172a !important;
+        }
+        .tab-btn-active {
+          background-color: #e2e8f0 !important;
+          color: #0f172a !important;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+          width: 5px;
+          height: 5px;
+        }
+        ::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+          background: #cbd5e1;
+          border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+          background: #94a3b8;
+        }
+      `}</style>
       {/* Extension Header */}
       <div
         style={{
           padding: '14px 16px',
-          borderBottom: '1px solid #1e293b',
+          borderBottom: '1px solid #e2e8f0',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)'
+          background: '#ffffff'
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -306,7 +358,7 @@ export const Popup: React.FC = () => {
               width: '28px',
               height: '28px',
               borderRadius: '6px',
-              background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
+              background: 'linear-gradient(135deg, #1e293b 0%, #475569 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center'
@@ -315,32 +367,35 @@ export const Popup: React.FC = () => {
             <GitPullRequest style={{ width: '16px', height: '16px', color: '#fff' }} />
           </div>
           <div>
-            <h2 style={{ margin: 0, fontSize: '15px', fontWeight: 600 }}>nowaygit</h2>
+            <h2 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#0f172a' }}>nowaygit</h2>
           </div>
         </div>
 
         <div style={{ display: 'flex', gap: '4px' }}>
           <button
             onClick={() => setActiveTab('main')}
+            className={`tab-btn ${activeTab === 'main' ? 'tab-btn-active' : ''}`}
             style={{
               padding: '4px 8px',
               fontSize: '11px',
-              backgroundColor: activeTab === 'main' ? '#334155' : 'transparent',
-              color: activeTab === 'main' ? '#fff' : '#94a3b8',
+              backgroundColor: activeTab === 'main' ? '#e2e8f0' : 'transparent',
+              color: activeTab === 'main' ? '#0f172a' : '#64748b',
               border: 'none',
               borderRadius: '4px',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              fontWeight: 500
             }}
           >
             Home
           </button>
           <button
             onClick={() => setActiveTab('settings')}
+            className={`tab-btn ${activeTab === 'settings' ? 'tab-btn-active' : ''}`}
             style={{
               padding: '4px 8px',
               fontSize: '11px',
-              backgroundColor: activeTab === 'settings' ? '#334155' : 'transparent',
-              color: activeTab === 'settings' ? '#fff' : '#94a3b8',
+              backgroundColor: activeTab === 'settings' ? '#e2e8f0' : 'transparent',
+              color: activeTab === 'settings' ? '#0f172a' : '#64748b',
               border: 'none',
               borderRadius: '4px',
               cursor: 'pointer',
@@ -354,11 +409,12 @@ export const Popup: React.FC = () => {
           <button
             onClick={() => setActiveTab('diagnostics')}
             title="Diagnostics"
+            className={`tab-btn ${activeTab === 'diagnostics' ? 'tab-btn-active' : ''}`}
             style={{
               padding: '4px 8px',
               fontSize: '11px',
-              backgroundColor: activeTab === 'diagnostics' ? '#334155' : 'transparent',
-              color: activeTab === 'diagnostics' ? '#fff' : '#94a3b8',
+              backgroundColor: activeTab === 'diagnostics' ? '#e2e8f0' : 'transparent',
+              color: activeTab === 'diagnostics' ? '#0f172a' : '#64748b',
               border: 'none',
               borderRadius: '4px',
               cursor: 'pointer',
@@ -379,9 +435,10 @@ export const Popup: React.FC = () => {
           <div
             style={{
               padding: '14px',
-              backgroundColor: '#1e293b',
+              backgroundColor: '#ffffff',
               borderRadius: '10px',
-              border: '1px solid #334155',
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
               marginBottom: '16px'
             }}
           >
@@ -393,7 +450,7 @@ export const Popup: React.FC = () => {
                 marginBottom: '10px'
               }}
             >
-              <span style={{ fontSize: '11px', textTransform: 'uppercase', color: '#94a3b8', fontWeight: 600 }}>
+              <span style={{ fontSize: '11px', textTransform: 'uppercase', color: '#64748b', fontWeight: 600 }}>
                 GitHub Connection
               </span>
               {auth.authenticated && (
@@ -403,7 +460,7 @@ export const Popup: React.FC = () => {
                   style={{
                     background: 'none',
                     border: 'none',
-                    color: '#f87171',
+                    color: '#ef4444',
                     cursor: 'pointer',
                     padding: 0
                   }}
@@ -421,22 +478,22 @@ export const Popup: React.FC = () => {
                   style={{ width: '32px', height: '32px', borderRadius: '50%' }}
                 />
                 <div>
-                  <div style={{ fontSize: '13px', fontWeight: 600, color: '#fff' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a' }}>
                     {auth.user.name || auth.user.login}
                   </div>
-                  <div style={{ fontSize: '11px', color: '#94a3b8' }}>@{auth.user.login}</div>
+                  <div style={{ fontSize: '11px', color: '#64748b' }}>@{auth.user.login}</div>
                 </div>
               </div>
             ) : deviceCode ? (
               <div style={{ textAlign: 'center', padding: '6px 0' }}>
-                <p style={{ fontSize: '11px', color: '#cbd5e1', margin: '0 0 6px' }}>
+                <p style={{ fontSize: '11px', color: '#475569', margin: '0 0 6px' }}>
                   Enter code on GitHub:
                 </p>
                 <div
                   style={{
                     fontSize: '18px',
                     fontWeight: 700,
-                    color: '#a855f7',
+                    color: '#0f172a',
                     letterSpacing: '2px',
                     marginBottom: '8px'
                   }}
@@ -452,8 +509,9 @@ export const Popup: React.FC = () => {
                     alignItems: 'center',
                     gap: '4px',
                     fontSize: '11px',
-                    color: '#818cf8',
-                    textDecoration: 'none'
+                    color: '#2563eb',
+                    textDecoration: 'none',
+                    fontWeight: 500
                   }}
                 >
                   Authorize <ExternalLink style={{ width: '10px', height: '10px' }} />
@@ -462,10 +520,11 @@ export const Popup: React.FC = () => {
             ) : (
               <button
                 onClick={handleStartAuth}
+                className="btn-primary"
                 style={{
                   width: '100%',
                   padding: '8px',
-                  backgroundColor: '#6366f1',
+                  backgroundColor: '#0f172a',
                   color: '#fff',
                   border: 'none',
                   borderRadius: '6px',
@@ -485,38 +544,41 @@ export const Popup: React.FC = () => {
 
           {/* Quick Info & Instructions */}
           <div
+            className="card-hover"
             style={{
               padding: '12px',
-              backgroundColor: 'rgba(99, 102, 241, 0.1)',
-              border: '1px solid rgba(99, 102, 241, 0.2)',
+              backgroundColor: '#ffffff',
+              border: '1px solid #e2e8f0',
               borderRadius: '8px',
               fontSize: '11px',
-              color: '#cbd5e1',
-              lineHeight: 1.4
+              color: '#334155',
+              lineHeight: 1.4,
+              boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
             }}
           >
-            <div style={{ fontWeight: 600, color: '#818cf8', marginBottom: '4px' }}>
+            <div style={{ fontWeight: 600, color: '#0f172a', marginBottom: '4px' }}>
               How to use nowaygit:
             </div>
-            1. Open any artifact in <strong style={{ color: '#fff' }}>claude.ai</strong>.<br />
-            2. Click the <strong style={{ color: '#a855f7' }}>Push to GitHub</strong> button in the toolbar.<br />
+            1. Open any artifact in <strong style={{ color: '#0f172a' }}>claude.ai</strong>.<br />
+            2. Click the <strong style={{ color: '#0f172a' }}>Push to GitHub</strong> button in the toolbar.<br />
             3. Choose target repo, path, & commit message!
           </div>
 
           {/* Last Used Repo Shortcut */}
           {settings.lastUsedRepo && (
-            <div style={{ marginTop: '16px', fontSize: '11px', color: '#94a3b8' }}>
+            <div style={{ marginTop: '16px', fontSize: '11px', color: '#64748b' }}>
               <div style={{ marginBottom: '4px' }}>Last Pushed Target:</div>
               <a
                 href={`https://github.com/${settings.lastUsedRepo.owner}/${settings.lastUsedRepo.repo}`}
                 target="_blank"
                 rel="noreferrer"
                 style={{
-                  color: '#818cf8',
+                  color: '#2563eb',
                   textDecoration: 'none',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '4px'
+                  gap: '4px',
+                  fontWeight: 500
                 }}
               >
                 {settings.lastUsedRepo.owner}/{settings.lastUsedRepo.repo} (
@@ -531,7 +593,7 @@ export const Popup: React.FC = () => {
       {activeTab === 'settings' && (
         <div style={{ padding: '16px' }}>
           <div style={{ marginBottom: '14px' }}>
-            <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#cbd5e1', marginBottom: '4px' }}>
+            <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
               Default Push Mode
             </label>
             <div style={{ display: 'flex', gap: '8px' }}>
@@ -540,16 +602,17 @@ export const Popup: React.FC = () => {
                 style={{
                   flex: 1,
                   padding: '6px',
-                  backgroundColor: pushModeInput === 'branch_pr' ? '#334155' : '#1e293b',
-                  border: `1px solid ${pushModeInput === 'branch_pr' ? '#6366f1' : '#334155'}`,
+                  backgroundColor: pushModeInput === 'branch_pr' ? '#0f172a' : '#ffffff',
+                  border: `1px solid ${pushModeInput === 'branch_pr' ? '#0f172a' : '#cbd5e1'}`,
                   borderRadius: '6px',
-                  color: '#fff',
+                  color: pushModeInput === 'branch_pr' ? '#ffffff' : '#475569',
                   fontSize: '11px',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '4px'
+                  gap: '4px',
+                  fontWeight: 500
                 }}
               >
                 <GitPullRequest style={{ width: '12px', height: '12px' }} /> Branch + PR
@@ -559,16 +622,17 @@ export const Popup: React.FC = () => {
                 style={{
                   flex: 1,
                   padding: '6px',
-                  backgroundColor: pushModeInput === 'direct' ? '#334155' : '#1e293b',
-                  border: `1px solid ${pushModeInput === 'direct' ? '#6366f1' : '#334155'}`,
+                  backgroundColor: pushModeInput === 'direct' ? '#0f172a' : '#ffffff',
+                  border: `1px solid ${pushModeInput === 'direct' ? '#0f172a' : '#cbd5e1'}`,
                   borderRadius: '6px',
-                  color: '#fff',
+                  color: pushModeInput === 'direct' ? '#ffffff' : '#475569',
                   fontSize: '11px',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '4px'
+                  gap: '4px',
+                  fontWeight: 500
                 }}
               >
                 <GitBranch style={{ width: '12px', height: '12px' }} /> Direct Push
@@ -577,7 +641,7 @@ export const Popup: React.FC = () => {
           </div>
 
           <div style={{ marginBottom: '14px' }}>
-            <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#cbd5e1', marginBottom: '4px' }}>
+            <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
               Anthropic API Key (AI Commit Messages)
             </label>
             <div style={{ position: 'relative' }}>
@@ -589,10 +653,10 @@ export const Popup: React.FC = () => {
                 style={{
                   width: '100%',
                   padding: '6px 10px 6px 28px',
-                  backgroundColor: '#1e293b',
-                  border: '1px solid #334155',
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #cbd5e1',
                   borderRadius: '6px',
-                  color: '#fff',
+                  color: '#0f172a',
                   fontSize: '11px',
                   boxSizing: 'border-box'
                 }}
@@ -615,7 +679,7 @@ export const Popup: React.FC = () => {
           </div>
 
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#cbd5e1', marginBottom: '4px' }}>
+            <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
               GitHub OAuth Client ID
             </label>
             <input
@@ -625,21 +689,21 @@ export const Popup: React.FC = () => {
               style={{
                 width: '100%',
                 padding: '6px 10px',
-                backgroundColor: '#1e293b',
-                border: '1px solid #334155',
+                backgroundColor: '#ffffff',
+                border: '1px solid #cbd5e1',
                 borderRadius: '6px',
-                color: '#fff',
+                color: '#0f172a',
                 fontSize: '11px',
                 boxSizing: 'border-box'
               }}
             />
           </div>
 
-          <div style={{ borderTop: '1px solid #1e293b', margin: '14px 0' }} />
+          <div style={{ borderTop: '1px solid #e2e8f0', margin: '14px 0' }} />
 
           {/* GitLab Integration */}
           <div style={{ marginBottom: '14px' }}>
-            <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#cbd5e1', marginBottom: '4px' }}>
+            <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
               GitLab Personal Access Token
             </label>
             <input
@@ -650,16 +714,16 @@ export const Popup: React.FC = () => {
               style={{
                 width: '100%',
                 padding: '6px 10px',
-                backgroundColor: '#1e293b',
-                border: '1px solid #334155',
+                backgroundColor: '#ffffff',
+                border: '1px solid #cbd5e1',
                 borderRadius: '6px',
-                color: '#fff',
+                color: '#0f172a',
                 fontSize: '11px',
                 boxSizing: 'border-box',
                 marginBottom: '6px'
               }}
             />
-            <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#cbd5e1', marginBottom: '4px' }}>
+            <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
               GitLab Host URL (Optional)
             </label>
             <input
@@ -670,21 +734,21 @@ export const Popup: React.FC = () => {
               style={{
                 width: '100%',
                 padding: '6px 10px',
-                backgroundColor: '#1e293b',
-                border: '1px solid #334155',
+                backgroundColor: '#ffffff',
+                border: '1px solid #cbd5e1',
                 borderRadius: '6px',
-                color: '#fff',
+                color: '#0f172a',
                 fontSize: '11px',
                 boxSizing: 'border-box'
               }}
             />
           </div>
 
-          <div style={{ borderTop: '1px solid #1e293b', margin: '14px 0' }} />
+          <div style={{ borderTop: '1px solid #e2e8f0', margin: '14px 0' }} />
 
           {/* Bitbucket Integration */}
           <div style={{ marginBottom: '14px' }}>
-            <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#cbd5e1', marginBottom: '4px' }}>
+            <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
               Bitbucket App Password
             </label>
             <input
@@ -695,16 +759,16 @@ export const Popup: React.FC = () => {
               style={{
                 width: '100%',
                 padding: '6px 10px',
-                backgroundColor: '#1e293b',
-                border: '1px solid #334155',
+                backgroundColor: '#ffffff',
+                border: '1px solid #cbd5e1',
                 borderRadius: '6px',
-                color: '#fff',
+                color: '#0f172a',
                 fontSize: '11px',
                 boxSizing: 'border-box',
                 marginBottom: '6px'
               }}
             />
-            <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#cbd5e1', marginBottom: '4px' }}>
+            <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
               Bitbucket Username
             </label>
             <input
@@ -715,28 +779,28 @@ export const Popup: React.FC = () => {
               style={{
                 width: '100%',
                 padding: '6px 10px',
-                backgroundColor: '#1e293b',
-                border: '1px solid #334155',
+                backgroundColor: '#ffffff',
+                border: '1px solid #cbd5e1',
                 borderRadius: '6px',
-                color: '#fff',
+                color: '#0f172a',
                 fontSize: '11px',
                 boxSizing: 'border-box'
               }}
             />
           </div>
 
-          <div style={{ borderTop: '1px solid #1e293b', margin: '14px 0' }} />
+          <div style={{ borderTop: '1px solid #e2e8f0', margin: '14px 0' }} />
 
           {/* Vercel Hook Integration */}
           <div style={{ marginBottom: '14px' }}>
-            <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#cbd5e1', marginBottom: '4px' }}>
+            <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
               Vercel Deploy Hooks
             </label>
             {vercelHooksList.length > 0 && (
               <div style={{ marginBottom: '8px', maxHeight: '100px', overflowY: 'auto' }}>
                 {vercelHooksList.map((h) => (
-                  <div key={h.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#1e293b', padding: '4px 8px', borderRadius: '4px', marginBottom: '4px' }}>
-                    <span style={{ fontSize: '10px' }}>{h.name}</span>
+                  <div key={h.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f1f5f9', padding: '4px 8px', borderRadius: '4px', marginBottom: '4px' }}>
+                    <span style={{ fontSize: '10px', color: '#0f172a' }}>{h.name}</span>
                     <button onClick={() => handleDeleteVercelHook(h.id)} style={{ border: 'none', background: 'transparent', color: '#ef4444', cursor: 'pointer', fontSize: '10px' }}>Remove</button>
                   </div>
                 ))}
@@ -748,30 +812,30 @@ export const Popup: React.FC = () => {
                 placeholder="Hook Name"
                 value={newHookName}
                 onChange={(e) => setNewHookName(e.target.value)}
-                style={{ width: '40%', padding: '4px 6px', backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '4px', color: '#fff', fontSize: '10px' }}
+                style={{ width: '40%', padding: '4px 6px', backgroundColor: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '4px', color: '#0f172a', fontSize: '10px' }}
               />
               <input
                 type="text"
                 placeholder="https://api.vercel.com/..."
                 value={newHookUrl}
                 onChange={(e) => setNewHookUrl(e.target.value)}
-                style={{ width: '60%', padding: '4px 6px', backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '4px', color: '#fff', fontSize: '10px' }}
+                style={{ width: '60%', padding: '4px 6px', backgroundColor: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '4px', color: '#0f172a', fontSize: '10px' }}
               />
             </div>
-            <button onClick={handleAddVercelHook} style={{ width: '100%', padding: '4px', backgroundColor: '#334155', color: '#fff', border: 'none', borderRadius: '4px', fontSize: '10px', cursor: 'pointer', marginBottom: '8px' }}>
+            <button onClick={handleAddVercelHook} className="btn-primary" style={{ width: '100%', padding: '4px', backgroundColor: '#0f172a', color: '#fff', border: 'none', borderRadius: '4px', fontSize: '10px', cursor: 'pointer', marginBottom: '8px' }}>
               Add Deploy Hook
             </button>
           </div>
 
-          <div style={{ borderTop: '1px solid #1e293b', margin: '14px 0' }} />
+          <div style={{ borderTop: '1px solid #e2e8f0', margin: '14px 0' }} />
 
           {/* Presets Manager */}
           <div style={{ marginBottom: '14px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-              <label style={{ fontSize: '11px', fontWeight: 600, color: '#cbd5e1' }}>Destination Presets</label>
+              <label style={{ fontSize: '11px', fontWeight: 600, color: '#475569' }}>Destination Presets</label>
               <div style={{ display: 'flex', gap: '6px' }}>
-                <button onClick={handleExportPresets} style={{ background: 'none', border: 'none', color: '#818cf8', fontSize: '9px', cursor: 'pointer' }}>Export</button>
-                <label style={{ color: '#818cf8', fontSize: '9px', cursor: 'pointer' }}>
+                <button onClick={handleExportPresets} style={{ background: 'none', border: 'none', color: '#2563eb', fontSize: '9px', cursor: 'pointer' }}>Export</button>
+                <label style={{ color: '#2563eb', fontSize: '9px', cursor: 'pointer' }}>
                   Import
                   <input type="file" accept=".json" onChange={handleImportPresets} style={{ display: 'none' }} />
                 </label>
@@ -781,27 +845,27 @@ export const Popup: React.FC = () => {
             {presetsList.length > 0 && (
               <div style={{ marginBottom: '8px', maxHeight: '100px', overflowY: 'auto' }}>
                 {presetsList.map((p) => (
-                  <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#1e293b', padding: '4px 8px', borderRadius: '4px', marginBottom: '4px' }}>
-                    <span style={{ fontSize: '10px' }}>{p.name} ({p.owner}/{p.repo})</span>
+                  <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f1f5f9', padding: '4px 8px', borderRadius: '4px', marginBottom: '4px' }}>
+                    <span style={{ fontSize: '10px', color: '#0f172a' }}>{p.name} ({p.owner}/{p.repo})</span>
                     <button onClick={() => handleDeletePreset(p.id)} style={{ border: 'none', background: 'transparent', color: '#ef4444', cursor: 'pointer', fontSize: '10px' }}>Remove</button>
                   </div>
                 ))}
               </div>
             )}
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', backgroundColor: '#1e293b', padding: '8px', borderRadius: '6px', marginBottom: '4px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', backgroundColor: '#f1f5f9', border: '1px solid #e2e8f0', padding: '8px', borderRadius: '6px', marginBottom: '4px' }}>
               <input
                 type="text"
                 placeholder="Preset Name (e.g. Main Repo)"
                 value={newPresetName}
                 onChange={(e) => setNewPresetName(e.target.value)}
-                style={{ padding: '4px 6px', backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '4px', color: '#fff', fontSize: '10px' }}
+                style={{ padding: '4px 6px', backgroundColor: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '4px', color: '#0f172a', fontSize: '10px' }}
               />
               <div style={{ display: 'flex', gap: '4px' }}>
                 <select
                   value={newPresetProvider}
                   onChange={(e) => setNewPresetProvider(e.target.value as any)}
-                  style={{ width: '40%', padding: '4px', backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '4px', color: '#fff', fontSize: '10px' }}
+                  style={{ width: '40%', padding: '4px', backgroundColor: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '4px', color: '#0f172a', fontSize: '10px' }}
                 >
                   <option value="github">GitHub</option>
                   <option value="gitlab">GitLab</option>
@@ -812,14 +876,14 @@ export const Popup: React.FC = () => {
                   placeholder="Owner"
                   value={newPresetOwner}
                   onChange={(e) => setNewPresetOwner(e.target.value)}
-                  style={{ width: '30%', padding: '4px 6px', backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '4px', color: '#fff', fontSize: '10px' }}
+                  style={{ width: '30%', padding: '4px 6px', backgroundColor: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '4px', color: '#0f172a', fontSize: '10px' }}
                 />
                 <input
                   type="text"
                   placeholder="Repo"
                   value={newPresetRepo}
                   onChange={(e) => setNewPresetRepo(e.target.value)}
-                  style={{ width: '30%', padding: '4px 6px', backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '4px', color: '#fff', fontSize: '10px' }}
+                  style={{ width: '30%', padding: '4px 6px', backgroundColor: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '4px', color: '#0f172a', fontSize: '10px' }}
                 />
               </div>
               <div style={{ display: 'flex', gap: '4px' }}>
@@ -828,38 +892,39 @@ export const Popup: React.FC = () => {
                   placeholder="Branch"
                   value={newPresetBranch}
                   onChange={(e) => setNewPresetBranch(e.target.value)}
-                  style={{ width: '30%', padding: '4px 6px', backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '4px', color: '#fff', fontSize: '10px' }}
+                  style={{ width: '30%', padding: '4px 6px', backgroundColor: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '4px', color: '#0f172a', fontSize: '10px' }}
                 />
                 <input
                   type="text"
                   placeholder="Folder Path"
                   value={newPresetFolderPath}
                   onChange={(e) => setNewPresetFolderPath(e.target.value)}
-                  style={{ width: '40%', padding: '4px 6px', backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '4px', color: '#fff', fontSize: '10px' }}
+                  style={{ width: '40%', padding: '4px 6px', backgroundColor: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '4px', color: '#0f172a', fontSize: '10px' }}
                 />
                 <select
                   value={newPresetPushMode}
                   onChange={(e) => setNewPresetPushMode(e.target.value as any)}
-                  style={{ width: '30%', padding: '4px', backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '4px', color: '#fff', fontSize: '10px' }}
+                  style={{ width: '30%', padding: '4px', backgroundColor: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '4px', color: '#0f172a', fontSize: '10px' }}
                 >
                   <option value="branch_pr">PR</option>
                   <option value="direct">Direct</option>
                 </select>
               </div>
-              <button onClick={handleAddPreset} style={{ padding: '4px', backgroundColor: '#334155', color: '#fff', border: 'none', borderRadius: '4px', fontSize: '10px', cursor: 'pointer' }}>
+              <button onClick={handleAddPreset} className="btn-primary" style={{ padding: '4px', backgroundColor: '#0f172a', color: '#fff', border: 'none', borderRadius: '4px', fontSize: '10px', cursor: 'pointer' }}>
                 Add Preset
               </button>
             </div>
           </div>
 
-          <div style={{ borderTop: '1px solid #1e293b', margin: '14px 0' }} />
+          <div style={{ borderTop: '1px solid #e2e8f0', margin: '14px 0' }} />
 
           <button
             onClick={handleSaveSettings}
+            className="btn-primary"
             style={{
               width: '100%',
               padding: '8px',
-              backgroundColor: saveSuccess ? '#22c55e' : '#6366f1',
+              backgroundColor: saveSuccess ? '#22c55e' : '#0f172a',
               color: '#fff',
               border: 'none',
               borderRadius: '6px',
@@ -869,8 +934,7 @@ export const Popup: React.FC = () => {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '6px',
-              transition: 'background-color 0.2s ease'
+              gap: '6px'
             }}
           >
             {saveSuccess ? (
@@ -897,7 +961,7 @@ export const Popup: React.FC = () => {
               marginBottom: '10px'
             }}
           >
-            <span style={{ fontSize: '12px', fontWeight: 600, color: '#cbd5e1' }}>
+            <span style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>
               Local Diagnostics (Last {diagnostics.length})
             </span>
             <div style={{ display: 'flex', gap: '8px' }}>
@@ -907,7 +971,7 @@ export const Popup: React.FC = () => {
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: copiedDiag ? '#4ade80' : '#818cf8',
+                  color: copiedDiag ? '#10b981' : '#2563eb',
                   fontSize: '11px',
                   cursor: 'pointer',
                   display: 'flex',
@@ -948,13 +1012,13 @@ export const Popup: React.FC = () => {
             style={{
               maxHeight: '260px',
               overflowY: 'auto',
-              backgroundColor: '#020617',
-              border: '1px solid #1e293b',
+              backgroundColor: '#ffffff',
+              border: '1px solid #cbd5e1',
               borderRadius: '6px',
               padding: '10px',
               fontFamily: 'monospace',
               fontSize: '10px',
-              color: '#cbd5e1',
+              color: '#334155',
               lineHeight: 1.4
             }}
           >
@@ -969,10 +1033,10 @@ export const Popup: React.FC = () => {
                   style={{
                     marginBottom: '8px',
                     paddingBottom: '8px',
-                    borderBottom: '1px solid #1e293b'
+                    borderBottom: '1px solid #e2e8f0'
                   }}
                 >
-                  <div style={{ color: '#f87171', fontWeight: 600 }}>
+                  <div style={{ color: '#ef4444', fontWeight: 600 }}>
                     [{new Date(log.timestamp).toLocaleTimeString()}] {log.source}
                   </div>
                   <div>{log.message}</div>
