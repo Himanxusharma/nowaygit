@@ -85,8 +85,9 @@ export const gitlabService = {
     const cleanPath = path.startsWith('/') ? path.slice(1) : path;
     const encodedPath = encodeURIComponent(cleanPath);
     const branchRef = ref || 'main';
+    const encodedProjectId = typeof projectId === 'string' ? encodeURIComponent(projectId) : projectId;
 
-    const response = await fetch(`${baseUrl}/projects/${projectId}/repository/files/${encodedPath}?ref=${encodeURIComponent(branchRef)}`, {
+    const response = await fetch(`${baseUrl}/projects/${encodedProjectId}/repository/files/${encodedPath}?ref=${encodeURIComponent(branchRef)}`, {
       headers
     });
 
@@ -119,8 +120,9 @@ export const gitlabService = {
     const headers = await this.getHeaders();
     const baseUrl = await this.getBaseUrl();
     const branchRef = ref || 'main';
+    const encodedProjectId = typeof projectId === 'string' ? encodeURIComponent(projectId) : projectId;
 
-    const response = await fetch(`${baseUrl}/projects/${projectId}/repository/tree?recursive=true&per_page=100&ref=${encodeURIComponent(branchRef)}`, {
+    const response = await fetch(`${baseUrl}/projects/${encodedProjectId}/repository/tree?recursive=true&per_page=100&ref=${encodeURIComponent(branchRef)}`, {
       headers
     });
 

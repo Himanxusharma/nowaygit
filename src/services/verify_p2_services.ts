@@ -9,7 +9,7 @@ import { vercelService } from './vercel';
 global.chrome = {
   storage: {
     local: {
-      get: async (key: string) => {
+      get: async (_key: string) => {
         return {
           nowaygit_settings: {
             githubClientId: 'mock_github_client_id',
@@ -20,14 +20,14 @@ global.chrome = {
           }
         };
       },
-      set: async (value: any) => {}
+      set: async (_value: any) => {}
     },
     session: {
-      get: async (key: string) => {
+      get: async (_key: string) => {
         return { github_access_token: 'mock_github_access_token' };
       },
-      set: async (value: any) => {},
-      remove: async (keys: string | string[]) => {}
+      set: async (_value: any) => {},
+      remove: async (_keys: string | string[]) => {}
     }
   }
 } as any;
@@ -35,11 +35,11 @@ global.chrome = {
 // Helper to mock fetch responses
 let mockResponses: Array<{ url: string; method?: string; status: number; body: any }> = [];
 
-global.fetch = (url: any, options: any = {}) => {
+const mockFetch = (url: any, options: any = {}) => {
   const method = options.method || 'GET';
   const matched = mockResponses.find(
     (m) =>
-      url.toString().includes(m.url) &&
+      (url.toString().split('?')[0] === m.url.split('?')[0]) &&
       (!m.method || m.method.toUpperCase() === method.toUpperCase())
   );
 
@@ -57,7 +57,9 @@ global.fetch = (url: any, options: any = {}) => {
       }
     )
   );
-} as any;
+};
+
+global.fetch = mockFetch as any;
 
 async function runTests() {
   console.log('🧪 Starting Phase 2 Service Verification Tests...');
@@ -163,6 +165,7 @@ async function runTests() {
   const glPush = await gitlabService.pushArtifact({
     owner: 'group',
     repo: 'my-repo',
+    isNewRepo: false,
     filePath: 'src/app.tsx',
     content: 'console.log("new code");',
     commitMessage: 'Commit from nowaygit',
@@ -247,6 +250,7 @@ async function runTests() {
   const bbPush = await bitbucketService.pushArtifact({
     owner: 'my-workspace',
     repo: 'bb-repo',
+    isNewRepo: false,
     filePath: 'index.js',
     content: 'console.log("bitbucket app");',
     commitMessage: 'Push to Bitbucket',
